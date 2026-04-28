@@ -15,22 +15,13 @@ class RecipeBrowserApp extends StatelessWidget {
       title: 'Recipe Browser',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
-        useMaterial3: true,
         colorScheme: ColorScheme.fromSeed(
-          seedColor: Colors.deepOrange,
+          seedColor: const Color(0xFFE8590C), // warm orange-red
           brightness: Brightness.light,
         ),
-        textTheme: GoogleFonts.outfitTextTheme(Theme.of(context).textTheme),
-      ),
-      darkTheme: ThemeData(
+        textTheme: GoogleFonts.outfitTextTheme(),
         useMaterial3: true,
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: Colors.deepOrange,
-          brightness: Brightness.dark,
-        ),
-        textTheme: GoogleFonts.outfitTextTheme(ThemeData.dark().textTheme),
       ),
-      themeMode: ThemeMode.system,
       home: const HomeScreen(),
     );
   }

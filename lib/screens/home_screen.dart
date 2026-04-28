@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import '../models/recipe.dart';
+import '../models/meal_category.dart';
 import '../services/recipe_service.dart';
-import 'recipe_detail_screen.dart';
+import 'category_screen.dart';
 
+/// Home screen — displays all meal categories as a scrollable grid.
+/// Each card shows the category thumbnail, name, and a short description.
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
@@ -12,191 +14,161 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  final RecipeService _recipeService = RecipeService();
-  final TextEditingController _searchController = TextEditingController();
-  
-  List<Recipe> _recipes = [];
-  bool _isLoading = false;
-  String _errorMessage = '';
+  final RecipeService _service = RecipeService();
+  late Future<List<MealCategory>> _categoriesFuture;
 
   @override
   void initState() {
     super.initState();
-    _performSearch('');
-  }
-
-  Future<void> _performSearch(String query) async {
-    setState(() {
-      _isLoading = true;
-      _errorMessage = '';
-    });
-
-    try {
-      final recipes = await _recipeService.searchRecipes(query);
-      setState(() {
-        _recipes = recipes;
-        _isLoading = false;
-      });
-    } catch (e) {
-      setState(() {
-        _errorMessage = 'Failed to fetch recipes. Please try again.';
-        _isLoading = false;
-      });
-    }
+    _categoriesFuture = _service.getCategories();
   }
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
     return Scaffold(
+      backgroundColor: colorScheme.surface,
       appBar: AppBar(
-        title: const Text('Recipe Explorer', style: TextStyle(fontWeight: FontWeight.bold)),
+        title: const Text('Recipe Browser'),
         centerTitle: true,
+        backgroundColor: colorScheme.primary,
+        foregroundColor: colorScheme.onPrimary,
         elevation: 0,
       ),
-      body: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: TextField(
-              controller: _searchController,
-              decoration: InputDecoration(
-                hintText: 'Search for meals (e.g. Ethiopian, Chicken)...',
-                prefixIcon: const Icon(Icons.search),
-                suffixIcon: IconButton(
-                  icon: const Icon(Icons.clear),
-                  onPressed: () {
-                    _searchController.clear();
-                    _performSearch('');
-                  },
-                ),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                filled: true,
-                fillColor: Theme.of(context).cardColor,
+      body: FutureBuilder<List<MealCategory>>(
+        future: _categoriesFuture,
+        builder: (context, snapshot) {
+          // Loading state
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return Center(
+              child: CircularProgressIndicator(
+                color: colorScheme.primary,
               ),
-              onSubmitted: _performSearch,
-            ),
-          ),
-          Expanded(
-            child: _buildBody(),
-          ),
-        ],
+            );
+          }
+
+          // Error state
+          if (snapshot.hasError) {
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.wifi_off_rounded,
+                      size: 64, color: colorScheme.error),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Could not load categories.',
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
+                  const SizedBox(height: 8),
+                  FilledButton.icon(
+                    onPressed: () => setState(() {
+                      _categoriesFuture = _service.getCategories();
+                    }),
+                    icon: const Icon(Icons.refresh),
+                    label: const Text('Retry'),
+                  ),
+                ],
+              ),
+            );
+          }
+
+          final categories = snapshot.data ?? [];
+
+          return LayoutBuilder(
+            builder: (context, constraints) {
+              final crossAxisCount = constraints.maxWidth > 600 ? 3 : 2;
+              return GridView.builder(
+                padding: const EdgeInsets.all(16),
+                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: crossAxisCount,
+                  childAspectRatio: 0.72,
+                  crossAxisSpacing: 14,
+                  mainAxisSpacing: 14,
+                ),
+                itemCount: categories.length,
+                itemBuilder: (context, index) =>
+                    _CategoryCard(category: categories[index]),
+              );
+            },
+          );
+        },
       ),
     );
   }
+}
 
-  Widget _buildBody() {
-    if (_isLoading) {
-      return const Center(child: CircularProgressIndicator());
-    }
+/// Card widget for a single category.
+class _CategoryCard extends StatelessWidget {
+  final MealCategory category;
 
-    if (_errorMessage.isNotEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(Icons.error_outline, size: 48, color: Colors.red),
-            const SizedBox(height: 16),
-            Text(_errorMessage, style: const TextStyle(fontSize: 16)),
-            const SizedBox(height: 16),
-            ElevatedButton(
-              onPressed: () => _performSearch(_searchController.text),
-              child: const Text('Retry'),
-            )
-          ],
-        ),
-      );
-    }
+  const _CategoryCard({required this.category});
 
-    if (_recipes.isEmpty) {
-      return const Center(
-        child: Text('No recipes found.', style: TextStyle(fontSize: 18)),
-      );
-    }
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
 
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        int crossAxisCount = constraints.maxWidth > 600 ? 3 : 2;
-        return GridView.builder(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: crossAxisCount,
-            childAspectRatio: 0.75,
-            crossAxisSpacing: 16,
-            mainAxisSpacing: 16,
-          ),
-          itemCount: _recipes.length,
-          itemBuilder: (context, index) {
-            final recipe = _recipes[index];
-            return _buildRecipeCard(context, recipe);
-          },
-        );
-      }
-    );
-  }
-
-  Widget _buildRecipeCard(BuildContext context, Recipe recipe) {
     return GestureDetector(
-      onTap: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => RecipeDetailScreen(recipe: recipe),
-          ),
-        );
-      },
+      onTap: () => Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => CategoryScreen(category: category),
+        ),
+      ),
       child: Card(
         clipBehavior: Clip.antiAlias,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        elevation: 4,
+        elevation: 3,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            // Thumbnail
             Expanded(
-              flex: 3,
-              child: Hero(
-                tag: 'recipe_image_${recipe.id}',
-                child: CachedNetworkImage(
-                  imageUrl: recipe.imageUrl,
-                  fit: BoxFit.cover,
-                  placeholder: (context, url) => Container(
-                    color: Colors.grey[300],
-                    child: const Center(child: CircularProgressIndicator()),
-                  ),
-                  errorWidget: (context, url, error) => const Icon(Icons.error),
+              flex: 5,
+              child: CachedNetworkImage(
+                imageUrl: category.strCategoryThumb,
+                fit: BoxFit.cover,
+                placeholder: (context, url) => Container(
+                  color: colorScheme.surfaceContainerHighest,
+                  child: const Center(child: CircularProgressIndicator()),
+                ),
+                errorWidget: (context, url, error) => Container(
+                  color: colorScheme.surfaceContainerHighest,
+                  child: Icon(Icons.restaurant,
+                      size: 48, color: colorScheme.outline),
                 ),
               ),
             ),
+
+            // Name + description
             Expanded(
-              flex: 2,
+              flex: 3,
               child: Padding(
-                padding: const EdgeInsets.all(12.0),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      recipe.title,
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
-                      maxLines: 2,
+                      category.strCategory,
+                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                            fontWeight: FontWeight.bold,
+                          ),
+                      maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
-                    const Spacer(),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: Theme.of(context).primaryColor.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
+                    const SizedBox(height: 4),
+                    Expanded(
                       child: Text(
-                        recipe.category,
-                        style: TextStyle(
-                          color: Theme.of(context).primaryColor,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                        ),
+                        category.strCategoryDescription,
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: colorScheme.onSurfaceVariant,
+                            ),
+                        maxLines: 3,
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
                   ],
