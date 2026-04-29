@@ -1,8 +1,11 @@
+import 'dart:io';
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../models/meal_category.dart';
 import '../models/meal.dart';
-import '../services/recipe_service.dart';
+import '../services/meal_api_service.dart';
+import '../services/api_exception.dart';
 import 'meal_detail_screen.dart';
 
 /// Category screen — shows all meals within a selected category.
@@ -18,7 +21,7 @@ class CategoryScreen extends StatefulWidget {
 }
 
 class _CategoryScreenState extends State<CategoryScreen> {
-  final RecipeService _service = RecipeService();
+  final MealApiService _service = MealApiService();
   late Future<List<Meal>> _mealsFuture;
 
   @override
@@ -26,6 +29,20 @@ class _CategoryScreenState extends State<CategoryScreen> {
     super.initState();
     _mealsFuture =
         _service.getMealsByCategory(widget.category.strCategory);
+  }
+
+  String _getErrorMessage(Object error) {
+    if (error is SocketException) {
+      return 'No internet connection';
+    } else if (error is TimeoutException) {
+      return 'Request timed out. Please try again.';
+    } else if (error is ApiException) {
+      return 'Error ${error.statusCode}: ${error.message}';
+    } else if (error is FormatException) {
+      return 'Unexpected data format received';
+    } else {
+      return 'An unexpected error occurred: $error';
+    }
   }
 
   @override
@@ -53,6 +70,7 @@ class _CategoryScreenState extends State<CategoryScreen> {
 
           // Error
           if (snapshot.hasError) {
+            final errorMsg = _getErrorMessage(snapshot.error!);
             return Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -61,8 +79,9 @@ class _CategoryScreenState extends State<CategoryScreen> {
                       size: 64, color: colorScheme.error),
                   const SizedBox(height: 16),
                   Text(
-                    'Could not load meals.',
+                    errorMsg,
                     style: Theme.of(context).textTheme.titleMedium,
+                    textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 8),
                   FilledButton.icon(
@@ -78,9 +97,9 @@ class _CategoryScreenState extends State<CategoryScreen> {
             );
           }
 
-          final meals = snapshot.data ?? [];
+          final meals = snapshot.data;
 
-          if (meals.isEmpty) {
+          if (meals == null || meals.isEmpty) {
             return const Center(child: Text('No meals found.'));
           }
 

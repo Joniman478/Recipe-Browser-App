@@ -1,7 +1,10 @@
+import 'dart:io';
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../models/meal_category.dart';
-import '../services/recipe_service.dart';
+import '../services/meal_api_service.dart';
+import '../services/api_exception.dart';
 import 'category_screen.dart';
 
 /// Home screen — displays all meal categories as a scrollable grid.
@@ -14,13 +17,27 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  final RecipeService _service = RecipeService();
+  final MealApiService _service = MealApiService();
   late Future<List<MealCategory>> _categoriesFuture;
 
   @override
   void initState() {
     super.initState();
     _categoriesFuture = _service.getCategories();
+  }
+
+  String _getErrorMessage(Object error) {
+    if (error is SocketException) {
+      return 'No internet connection';
+    } else if (error is TimeoutException) {
+      return 'Request timed out. Please try again.';
+    } else if (error is ApiException) {
+      return 'Error ${error.statusCode}: ${error.message}';
+    } else if (error is FormatException) {
+      return 'Unexpected data format received';
+    } else {
+      return 'An unexpected error occurred: $error';
+    }
   }
 
   @override
@@ -50,6 +67,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
           // Error state
           if (snapshot.hasError) {
+            final errorMsg = _getErrorMessage(snapshot.error!);
             return Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -58,8 +76,9 @@ class _HomeScreenState extends State<HomeScreen> {
                       size: 64, color: colorScheme.error),
                   const SizedBox(height: 16),
                   Text(
-                    'Could not load categories.',
+                    errorMsg,
                     style: Theme.of(context).textTheme.titleMedium,
+                    textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 8),
                   FilledButton.icon(
@@ -74,7 +93,12 @@ class _HomeScreenState extends State<HomeScreen> {
             );
           }
 
-          final categories = snapshot.data ?? [];
+          final categories = snapshot.data;
+          
+          // No data state
+          if (categories == null || categories.isEmpty) {
+            return const Center(child: Text('No data available.'));
+          }
 
           return LayoutBuilder(
             builder: (context, constraints) {

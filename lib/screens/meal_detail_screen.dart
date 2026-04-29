@@ -1,8 +1,11 @@
+import 'dart:io';
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../models/meal.dart';
-import '../services/recipe_service.dart';
+import '../services/meal_api_service.dart';
+import '../services/api_exception.dart';
 
 /// Meal detail screen — fetches full meal data via /lookup.php and displays:
 ///   • Hero thumbnail
@@ -20,13 +23,27 @@ class MealDetailScreen extends StatefulWidget {
 }
 
 class _MealDetailScreenState extends State<MealDetailScreen> {
-  final RecipeService _service = RecipeService();
+  final MealApiService _service = MealApiService();
   late Future<Meal?> _mealFuture;
 
   @override
   void initState() {
     super.initState();
     _mealFuture = _service.getMealById(widget.mealId);
+  }
+
+  String _getErrorMessage(Object error) {
+    if (error is SocketException) {
+      return 'No internet connection';
+    } else if (error is TimeoutException) {
+      return 'Request timed out. Please try again.';
+    } else if (error is ApiException) {
+      return 'Error ${error.statusCode}: ${error.message}';
+    } else if (error is FormatException) {
+      return 'Unexpected data format received';
+    } else {
+      return 'An unexpected error occurred: $error';
+    }
   }
 
   /// Opens the YouTube URL in an external app / browser.
@@ -47,14 +64,18 @@ class _MealDetailScreenState extends State<MealDetailScreen> {
             return const Center(child: CircularProgressIndicator());
           }
 
-          if (snapshot.hasError || snapshot.data == null) {
+          if (snapshot.hasError) {
+            final errorMsg = _getErrorMessage(snapshot.error!);
             return Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   const Icon(Icons.error_outline, size: 64, color: Colors.red),
                   const SizedBox(height: 16),
-                  const Text('Could not load meal details.'),
+                  Text(
+                    errorMsg,
+                    textAlign: TextAlign.center,
+                  ),
                   const SizedBox(height: 8),
                   FilledButton(
                     onPressed: () => setState(() {
@@ -65,6 +86,10 @@ class _MealDetailScreenState extends State<MealDetailScreen> {
                 ],
               ),
             );
+          }
+          
+          if (snapshot.data == null) {
+             return const Center(child: Text('No data available.'));
           }
 
           final meal = snapshot.data!;
