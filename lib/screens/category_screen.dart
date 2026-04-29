@@ -31,16 +31,18 @@ class _CategoryScreenState extends State<CategoryScreen> {
   }
 
   String _getErrorMessage(Object error) {
-    if (error.toString().contains('SocketException') || error.toString().contains('Failed to fetch') || error.toString().contains('ClientException')) {
-      return 'Network error or no internet connection';
+    if (error.toString().contains('SocketException') ||
+        error.toString().contains('Failed to fetch') ||
+        error.toString().contains('ClientException')) {
+      return 'No internet connection';
     } else if (error is TimeoutException) {
-      return 'Request timed out. Please try again.';
+      return 'Request timed out';
     } else if (error is ApiException) {
       return 'Error ${error.statusCode}: ${error.message}';
     } else if (error is FormatException) {
-      return 'Unexpected data format received';
+      return 'Malformed JSON response';
     } else {
-      return 'An unexpected error occurred: $error';
+      return 'An unexpected error occurred';
     }
   }
 

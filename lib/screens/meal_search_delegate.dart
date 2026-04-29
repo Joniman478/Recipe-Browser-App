@@ -8,7 +8,6 @@ import 'meal_detail_screen.dart';
 
 class MealSearchDelegate extends SearchDelegate<String?> {
   final MealApiService _service = MealApiService();
-  Timer? _debounceTimer;
 
   @override
   String get searchFieldLabel => 'Search recipes...';

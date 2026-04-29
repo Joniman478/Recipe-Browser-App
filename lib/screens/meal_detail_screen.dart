@@ -32,16 +32,18 @@ class _MealDetailScreenState extends State<MealDetailScreen> {
   }
 
   String _getErrorMessage(Object error) {
-    if (error.toString().contains('SocketException') || error.toString().contains('Failed to fetch') || error.toString().contains('ClientException')) {
-      return 'Network error or no internet connection';
+    if (error.toString().contains('SocketException') ||
+        error.toString().contains('Failed to fetch') ||
+        error.toString().contains('ClientException')) {
+      return 'No internet connection';
     } else if (error is TimeoutException) {
-      return 'Request timed out. Please try again.';
+      return 'Request timed out';
     } else if (error is ApiException) {
       return 'Error ${error.statusCode}: ${error.message}';
     } else if (error is FormatException) {
-      return 'Unexpected data format received';
+      return 'Malformed JSON response';
     } else {
-      return 'An unexpected error occurred: $error';
+      return 'An unexpected error occurred';
     }
   }
 
@@ -71,10 +73,12 @@ class _MealDetailScreenState extends State<MealDetailScreen> {
       body: FutureBuilder<Meal?>(
         future: _mealFuture,
         builder: (context, snapshot) {
+          // 1. Waiting State: Show a standard circular progress indicator.
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
           }
 
+          // 2. Error State: Provide feedback and a Retry button for failed lookups.
           if (snapshot.hasError) {
             final errorMsg = _getErrorMessage(snapshot.error!);
             return Center(
@@ -99,10 +103,12 @@ class _MealDetailScreenState extends State<MealDetailScreen> {
             );
           }
           
+          // 3. Null State: Handle cases where the ID does not return any meal.
           if (snapshot.data == null) {
              return const Center(child: Text('No data available.'));
           }
 
+          // 4. Data State: Pass the loaded [Meal] object to the body widget.
           final meal = snapshot.data!;
           return _MealDetailBody(meal: meal, onLaunchYouTube: _launchYouTube);
         },

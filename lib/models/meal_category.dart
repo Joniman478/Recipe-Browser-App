@@ -14,6 +14,8 @@ class MealCategory {
     required this.strCategoryDescription,
   });
 
+  /// Factory constructor to create a [MealCategory] from a JSON map.
+  /// Uses explicit type casts and provides default values for missing data.
   factory MealCategory.fromJson(Map<String, dynamic> json) {
     return MealCategory(
       idCategory: json['idCategory'] as String? ?? '',
@@ -23,6 +25,7 @@ class MealCategory {
     );
   }
 
+  /// Serializes the [MealCategory] back into a JSON-compatible Map.
   Map<String, dynamic> toJson() {
     return {
       'idCategory': idCategory,
@@ -32,6 +35,7 @@ class MealCategory {
     };
   }
 
+  /// Standard copyWith method for creating variations of a [MealCategory].
   MealCategory copyWith({
     String? idCategory,
     String? strCategory,

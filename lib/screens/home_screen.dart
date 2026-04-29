@@ -28,17 +28,21 @@ class _HomeScreenState extends State<HomeScreen> {
     _categoriesFuture = _service.getCategories();
   }
 
+  /// Maps caught exceptions to user-friendly error messages.
+  /// Handles Network, Timeout, API, and Format errors specifically.
   String _getErrorMessage(Object error) {
-    if (error.toString().contains('SocketException') || error.toString().contains('Failed to fetch') || error.toString().contains('ClientException')) {
-      return 'Network error or no internet connection';
+    if (error.toString().contains('SocketException') ||
+        error.toString().contains('Failed to fetch') ||
+        error.toString().contains('ClientException')) {
+      return 'No internet connection';
     } else if (error is TimeoutException) {
-      return 'Request timed out. Please try again.';
+      return 'Request timed out';
     } else if (error is ApiException) {
       return 'Error ${error.statusCode}: ${error.message}';
     } else if (error is FormatException) {
-      return 'Unexpected data format received';
+      return 'Malformed JSON response';
     } else {
-      return 'An unexpected error occurred: $error';
+      return 'An unexpected error occurred';
     }
   }
 
@@ -130,7 +134,7 @@ class _HomeScreenState extends State<HomeScreen> {
       body: FutureBuilder<List<MealCategory>>(
         future: _categoriesFuture,
         builder: (context, snapshot) {
-          // Loading state
+          // 1. Waiting State: Show a loading indicator while fetching data.
           if (snapshot.connectionState == ConnectionState.waiting) {
             return Center(
               child: CircularProgressIndicator(
@@ -139,7 +143,7 @@ class _HomeScreenState extends State<HomeScreen> {
             );
           }
 
-          // Error state
+          // 2. Error State: Show an error icon, message, and a Retry button.
           if (snapshot.hasError) {
             final errorMsg = _getErrorMessage(snapshot.error!);
             return Center(
@@ -169,11 +173,12 @@ class _HomeScreenState extends State<HomeScreen> {
 
           final categories = snapshot.data;
           
-          // No data state
+          // 3. Null/Empty State: Handle cases where no data is returned.
           if (categories == null || categories.isEmpty) {
             return const Center(child: Text('No data available.'));
           }
 
+          // 4. Data State: Render the grid of categories once data is loaded.
           return LayoutBuilder(
             builder: (context, constraints) {
               final crossAxisCount = constraints.maxWidth > 600 ? 3 : 2;

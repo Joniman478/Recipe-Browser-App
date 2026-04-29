@@ -23,8 +23,8 @@ class Meal {
     required this.ingredients,
   });
 
-  /// Builds a [Meal] from a full /lookup.php response object,
-  /// combining the 20 strIngredientX / strMeasureX pairs.
+  /// Builds a [Meal] from a full /lookup.php response object.
+  /// Iterates through up to 20 strIngredient and strMeasure fields to combine them.
   factory Meal.fromJson(Map<String, dynamic> json) {
     final List<String> ingredients = [];
     for (int i = 1; i <= 20; i++) {
@@ -47,8 +47,8 @@ class Meal {
     );
   }
 
-  /// Lightweight constructor used when only thumbnail data is
-  /// available (e.g. from /filter.php) — full details loaded later.
+  /// Factory constructor for parsing results from the filter endpoint.
+  /// Note: This response contains fewer fields than the full lookup.
   factory Meal.fromFilterJson(Map<String, dynamic> json) {
     return Meal(
       idMeal: json['idMeal'] as String? ?? '',
@@ -58,6 +58,7 @@ class Meal {
     );
   }
 
+  /// Converts the [Meal] instance back into a JSON-compatible Map.
   Map<String, dynamic> toJson() {
     return {
       'idMeal': idMeal,
@@ -71,6 +72,7 @@ class Meal {
     };
   }
 
+  /// Creates a copy of this [Meal] with selected fields replaced by new values.
   Meal copyWith({
     String? idMeal,
     String? strMeal,
