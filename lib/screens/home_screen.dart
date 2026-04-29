@@ -6,6 +6,8 @@ import '../services/meal_api_service.dart';
 import '../services/api_exception.dart';
 import 'category_screen.dart';
 import 'meal_search_delegate.dart';
+import 'profile_screen.dart';
+import 'settings_screen.dart';
 
 /// Home screen — displays all meal categories as a scrollable grid.
 /// Each card shows the category thumbnail, name, and a short description.
@@ -62,7 +64,68 @@ class _HomeScreenState extends State<HomeScreen> {
               );
             },
           ),
+          IconButton(
+            icon: const Icon(Icons.person_outline),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const ProfileScreen()),
+              );
+            },
+          ),
         ],
+      ),
+      drawer: Drawer(
+        child: Column(
+          children: [
+            UserAccountsDrawerHeader(
+              currentAccountPicture: const CircleAvatar(
+                backgroundColor: Colors.white,
+                child: Icon(Icons.person, size: 40, color: Colors.grey),
+              ),
+              accountName: const Text("Yonathan Tatek"),
+              accountEmail: const Text("ID: ATE/6955/15"),
+              decoration: BoxDecoration(
+                color: colorScheme.primary,
+              ),
+            ),
+            ListTile(
+              leading: const Icon(Icons.home_outlined),
+              title: const Text("Home"),
+              onTap: () => Navigator.pop(context),
+            ),
+            ListTile(
+              leading: const Icon(Icons.person_outline),
+              title: const Text("Profile"),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const ProfileScreen()),
+                );
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.settings_outlined),
+              title: const Text("Settings"),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const SettingsScreen()),
+                );
+              },
+            ),
+            const Spacer(),
+            const Padding(
+              padding: EdgeInsets.all(16.0),
+              child: Text(
+                "v 1.0.0",
+                style: TextStyle(color: Colors.grey, fontSize: 12),
+              ),
+            ),
+          ],
+        ),
       ),
       body: FutureBuilder<List<MealCategory>>(
         future: _categoriesFuture,
