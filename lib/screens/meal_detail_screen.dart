@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
@@ -33,8 +32,8 @@ class _MealDetailScreenState extends State<MealDetailScreen> {
   }
 
   String _getErrorMessage(Object error) {
-    if (error is SocketException) {
-      return 'No internet connection';
+    if (error.toString().contains('SocketException') || error.toString().contains('Failed to fetch') || error.toString().contains('ClientException')) {
+      return 'Network error or no internet connection';
     } else if (error is TimeoutException) {
       return 'Request timed out. Please try again.';
     } else if (error is ApiException) {
@@ -49,8 +48,20 @@ class _MealDetailScreenState extends State<MealDetailScreen> {
   /// Opens the YouTube URL in an external app / browser.
   Future<void> _launchYouTube(String url) async {
     final uri = Uri.parse(url);
-    if (await canLaunchUrl(uri)) {
-      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    try {
+      if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Could not launch $url')),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error launching YouTube: $e')),
+        );
+      }
     }
   }
 

@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
@@ -32,8 +31,8 @@ class _CategoryScreenState extends State<CategoryScreen> {
   }
 
   String _getErrorMessage(Object error) {
-    if (error is SocketException) {
-      return 'No internet connection';
+    if (error.toString().contains('SocketException') || error.toString().contains('Failed to fetch') || error.toString().contains('ClientException')) {
+      return 'Network error or no internet connection';
     } else if (error is TimeoutException) {
       return 'Request timed out. Please try again.';
     } else if (error is ApiException) {

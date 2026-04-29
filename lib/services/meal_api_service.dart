@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'dart:io';
 import 'package:http/http.dart' as http;
 import '../models/meal_category.dart';
 import '../models/meal.dart';
@@ -53,5 +52,18 @@ class MealApiService {
       return Meal.fromJson(raw.first as Map<String, dynamic>);
     }
     return null;
+  }
+
+  Future<List<Meal>> searchMeals(String query) async {
+    if (query.trim().isEmpty) return [];
+    
+    final uri = Uri.parse('$_baseUrl/search.php?s=${Uri.encodeQueryComponent(query)}');
+    final response = await http.get(uri, headers: _headers).timeout(_timeout);
+    _checkResponse(response);
+
+    final data = json.decode(response.body);
+    final List raw = data['meals'] as List? ?? [];
+    // The search endpoint returns full meal objects, but we can parse them using fromJson
+    return raw.map((m) => Meal.fromJson(m as Map<String, dynamic>)).toList();
   }
 }

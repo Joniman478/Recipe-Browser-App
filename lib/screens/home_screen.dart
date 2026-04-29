@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
@@ -6,6 +5,7 @@ import '../models/meal_category.dart';
 import '../services/meal_api_service.dart';
 import '../services/api_exception.dart';
 import 'category_screen.dart';
+import 'meal_search_delegate.dart';
 
 /// Home screen — displays all meal categories as a scrollable grid.
 /// Each card shows the category thumbnail, name, and a short description.
@@ -27,8 +27,8 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   String _getErrorMessage(Object error) {
-    if (error is SocketException) {
-      return 'No internet connection';
+    if (error.toString().contains('SocketException') || error.toString().contains('Failed to fetch') || error.toString().contains('ClientException')) {
+      return 'Network error or no internet connection';
     } else if (error is TimeoutException) {
       return 'Request timed out. Please try again.';
     } else if (error is ApiException) {
@@ -52,6 +52,17 @@ class _HomeScreenState extends State<HomeScreen> {
         backgroundColor: colorScheme.primary,
         foregroundColor: colorScheme.onPrimary,
         elevation: 0,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.search),
+            onPressed: () {
+              showSearch(
+                context: context,
+                delegate: MealSearchDelegate(),
+              );
+            },
+          ),
+        ],
       ),
       body: FutureBuilder<List<MealCategory>>(
         future: _categoriesFuture,
